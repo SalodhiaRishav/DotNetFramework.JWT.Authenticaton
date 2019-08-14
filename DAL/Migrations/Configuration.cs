@@ -30,7 +30,7 @@ namespace DAL.Migrations
             context.SaveChanges();
 
             UserRole userRole = new UserRole();
-            userRole.RoleId = 
+            userRole.RoleId = role.Id;
             userRole.UserId = user.Id;
             context.UserRoles.AddOrUpdate(userRole);
             context.SaveChanges();

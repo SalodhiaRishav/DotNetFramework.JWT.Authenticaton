@@ -112,6 +112,8 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\AdminService.cs" />
+    <Compile Include="Services\Filters\AdminAuthenticationFilter.cs" />
+    <Compile Include="Services\Filters\LoginFilter.cs" />
     <Compile Include="Services\LoginService.cs" />
   </ItemGroup>
   <ItemGroup>

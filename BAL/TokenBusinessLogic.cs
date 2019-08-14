@@ -19,12 +19,13 @@ namespace BAL
     }
     public class TokenBusinessLogic
     {
-        private readonly string secret;
+        private static string secret = "XCAP05H6LoKvbRRa/QkqLNMI7cOHguaRyHzyg7n5qEkGjQmtBhz4SzYh4Fqwjyi3KJHlSXKPwVu2+bXr6CtpgQ==";
+        //private readonly string secret;
         private readonly RoleBusinessLogic roleBusinessLogic;
         private AuthenticationDbContext dbContext;
         public TokenBusinessLogic()
         {
-            secret = "This is my shared key, not so secret, secret!";
+            //secret = "This is my shared key, not so secret, secret!";
             roleBusinessLogic = new RoleBusinessLogic();
             dbContext = new AuthenticationDbContext();
         }
@@ -44,7 +45,9 @@ namespace BAL
 
         private (string AccessToken, IEnumerable<Claim> Claims) GenerateAccessToken(User user)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+            byte[] key = Convert.FromBase64String(secret);
+            SymmetricSecurityKey securityKey = new SymmetricSecurityKey(key);
+            //var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             List<Claim> claims = new List<Claim>();
 
             claims.Add(new Claim(ClaimTypes.Email, user.Email));
@@ -59,7 +62,7 @@ namespace BAL
                 NotBefore=DateTime.UtcNow,
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddMinutes(2),
-                SigningCredentials = new SigningCredentials(key,
+                SigningCredentials = new SigningCredentials(securityKey,
                 SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -79,7 +82,9 @@ namespace BAL
 
         private (string RefreshTokenValue, string RefreshTokenSerial) GenerateRefreshToken(User user)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+            byte[] key = Convert.FromBase64String(secret);
+            SymmetricSecurityKey securityKey = new SymmetricSecurityKey(key);
+            //var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var refreshTokenSerial = this.CreateCryptographicallySecureGuid().ToString().Replace("-", "");
             List<Claim> claims = new List<Claim>();
             claims.Add(new Claim(ClaimTypes.SerialNumber, refreshTokenSerial));
@@ -90,7 +95,7 @@ namespace BAL
                 NotBefore = DateTime.UtcNow,
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddMinutes(60),
-                SigningCredentials = new SigningCredentials(key,
+                SigningCredentials = new SigningCredentials(securityKey,
                 SecurityAlgorithms.HmacSha256Signature)
             };
 
@@ -108,12 +113,41 @@ namespace BAL
             userToken.RefreshTokenIdHash = refreshTokenSerialNumber;
             userToken.RefreshTokenIdHashSource = null;
             userToken.RefreshTokenExpiresDateTime = DateTimeOffset.UtcNow.AddMinutes(60);
-            userToken.AccessTokenExpiresDateTime = DateTimeOffset.UtcNow.AddMinutes(2);
+            userToken.AccessTokenExpiresDateTime = DateTimeOffset.UtcNow.AddMinutes(8);
             dbContext.UserTokens.Add(userToken);
             dbContext.SaveChanges();
         }
 
-        
 
+        public ClaimsPrincipal GetPrincipal(string token)
+        {
+            try
+            {
+                JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+                JwtSecurityToken jwtToken = (JwtSecurityToken)tokenHandler.ReadToken(token);
+                if (jwtToken == null)
+                    return null;
+
+                byte[] key = Convert.FromBase64String(secret);
+                //var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+                //byte[] key = Convert.FromBase64String(secret);
+                TokenValidationParameters parameters = new TokenValidationParameters()
+                {
+                    RequireExpirationTime = true,
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key)
+                };
+                SecurityToken securityToken;
+                ClaimsPrincipal principal = tokenHandler.ValidateToken(token,
+                      parameters, out securityToken);
+                return principal;
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+        }
     }
 }
