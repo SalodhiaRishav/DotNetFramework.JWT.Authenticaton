@@ -194,6 +194,7 @@ namespace BAL
             var userToken = tokenList.First();
             if(userToken.RefreshTokenExpiresDateTime< DateTime.UtcNow)
             {
+                DeleteExpiredTokens();
                 return null;
             }
 
@@ -234,6 +235,26 @@ namespace BAL
             catch (Exception)
             {
                 return null;
+            }
+        }
+
+       private void DeleteExpiredTokens()
+        {
+            var expiredTokenList = dbContext.UserTokens.Where(uToken => uToken.RefreshTokenExpiresDateTime <= DateTime.UtcNow).ToList();
+            foreach(var token in expiredTokenList)
+            {
+                dbContext.UserTokens.Remove(token);
+            }
+            dbContext.SaveChanges();
+        }
+
+        public void RevokeRefereshToken(string refreshToken)
+        {
+            var refreshTokenList = dbContext.UserTokens.Where(uToken => uToken.RefreshTokenIdHash == refreshToken).ToList();
+            if(refreshTokenList.Count != 0)
+            {
+                dbContext.UserTokens.Remove(refreshTokenList.First());
+                dbContext.SaveChanges();
             }
         }
     }
