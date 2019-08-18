@@ -1,4 +1,5 @@
 ﻿using BAL;
+using Microsoft.IdentityModel.Tokens;
 using ServiceStack.ServiceHost;
 using ServiceStack.ServiceInterface;
 using System;
@@ -34,6 +35,9 @@ namespace JWTAuthentication.Services.Filters
                 res.Close();
                 return;
             }
+            res.AddHeader("Bearer", "new token");
+            res.Write("your new token");
+            
         }
 
         private bool ValidateTokenForAdmin(string token)
@@ -62,7 +66,12 @@ namespace JWTAuthentication.Services.Filters
                 }
                 return isAdmin;
             }
-            catch (Exception e)
+            catch(SecurityTokenExpiredException)
+            {
+                //TODO handle
+                return false;
+            }
+            catch (Exception)
             {
                 return false;
             }
